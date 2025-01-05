@@ -1,0 +1,75 @@
+import pygame
+import random
+import math
+WIDTH, HEIGHT = 800, 600
+BACKGROUND_COLOR = (0, 0, 0)
+FPS = 60
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("ترکیب رنگ‌ها - نسخه فوق‌العاده خفن!")
+clock = pygame.time.Clock()
+def random_color():
+    return [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
+def blend_colors(color1, color2, blend_factor):
+    return [
+        int(color1[i] * (1 - blend_factor) + color2[i] * blend_factor)
+        for i in range(3)
+    ]
+def lighting_effect(x, y, time):
+    dx = math.sin(time / 50) * WIDTH // 2
+    dy = math.cos(time / 50) * HEIGHT // 2
+    distance = math.sqrt((x - dx) ** 2 + (y - dy) ** 2)
+    intensity = max(0, 255 - distance // 2)
+    return intensity
+particles = [
+    {
+        "pos": [WIDTH // 2, HEIGHT // 2],
+        "velocity": [random.uniform(-2, 2), random.uniform(-2, 2)],
+        "color": random_color(),
+        "size": random.randint(3, 6),
+        "age": 0,
+    }
+]
+running = True
+time = 0
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    overlay = pygame.Surface((WIDTH, HEIGHT))
+    overlay.set_alpha(20)
+    overlay.fill(BACKGROUND_COLOR)
+    screen.blit(overlay, (0, 0))
+    new_particles = []
+    for particle in particles:
+        x, y = particle["pos"]
+        vx, vy = particle["velocity"]
+        color = particle["color"]
+        size = particle["size"]
+        age = particle["age"]
+        intensity = lighting_effect(x, y, time)
+        lit_color = [min(255, c + intensity // 2) for c in color]
+        pygame.draw.circle(screen, lit_color, (int(x), int(y)), size)
+        particle["pos"][0] += vx
+        particle["pos"][1] += vy
+        if x < 0 or x > WIDTH:
+            particle["velocity"][0] *= -1
+        if y < 0 or y > HEIGHT:
+            particle["velocity"][1] *= -1
+        particle["color"] = blend_colors(color, random_color(), 0.02)
+        particle["age"] += 1
+        if particle["age"] < 200:  # محدودیت عمر
+            new_particles.append(particle)
+        if random.random() < 0.02:  # احتمال تولید ذره جدید
+            new_particles.append({
+                "pos": particle["pos"][:],
+                "velocity": [random.uniform(-2, 2), random.uniform(-2, 2)],
+                "color": random_color(),
+                "size": random.randint(3, 6),
+                "age": 0,
+            })
+    particles = new_particles
+    time += 1
+    pygame.display.flip()
+    clock.tick(FPS)
+pygame.quit()
